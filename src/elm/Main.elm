@@ -1,12 +1,15 @@
 module Main exposing (..)
 
-import Html exposing (Html, text, h1)
+import Html exposing (Html, text, div, h1)
+import Html.Attributes exposing (class)
 import Navigation
 import UrlParser as Url exposing ((</>), (<?>), s, int, stringParam, top)
 
 
 type alias Model =
-    { route : Maybe Route }
+    { route : Maybe Route
+    , editorModel : EditorModel
+    }
 
 
 type Route
@@ -38,7 +41,9 @@ main =
 
 init : Navigation.Location -> ( Model, Cmd Msg )
 init location =
-    ( Model (Url.parsePath route location), Cmd.none )
+    ( Model (Url.parsePath route location) initialEditorModel
+    , Cmd.none
+    )
 
 
 subscriptions : Model -> Sub Msg
@@ -59,17 +64,36 @@ view model =
     in
         case model.route of
             Just route ->
-                showRoute route
+                showRoute route model
 
             Nothing ->
                 text "Not Found!"
 
 
-showRoute : Route -> Html msg
-showRoute route =
+showRoute : Route -> Model -> Html msg
+showRoute route model =
     case route of
         Home ->
             text "Home"
 
         Editor ->
-            text "Editor"
+            editor model.editorModel
+
+
+
+-- Editor
+
+
+type alias EditorModel =
+    String
+
+
+initialEditorModel : String
+initialEditorModel =
+    ""
+
+
+editor : EditorModel -> Html msg
+editor editorModel =
+    div [ class "editor" ]
+        [ text "Editor" ]
