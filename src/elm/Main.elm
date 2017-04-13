@@ -1,6 +1,6 @@
 module Main exposing (..)
 
-import Html exposing (Html, text)
+import Html exposing (Html, text, h1)
 import Navigation
 import UrlParser as Url exposing ((</>), (<?>), s, int, stringParam, top)
 
@@ -53,4 +53,23 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    text "Hello World"
+    let
+        dummy =
+            Debug.log "view::model: " model
+    in
+        case model.route of
+            Just route ->
+                showRoute route
+
+            Nothing ->
+                text "Not Found!"
+
+
+showRoute : Route -> Html msg
+showRoute route =
+    case route of
+        Home ->
+            text "Home"
+
+        Editor ->
+            text "Editor"
