@@ -1,9 +1,11 @@
 module Main exposing (..)
 
-import Html exposing (Html, text, div, h1)
+import Html exposing (Html, text, div, h1, textarea)
 import Html.Attributes exposing (class)
+import Html.Events exposing (on)
 import Navigation
 import UrlParser as Url exposing ((</>), (<?>), s, int, stringParam, top)
+import Json.Decode exposing (at, string)
 
 
 type alias Model =
@@ -19,6 +21,7 @@ type Route
 
 type Msg
     = UrlChange Navigation.Location
+    | EditorInput String
 
 
 route : Url.Parser (Route -> a) a
@@ -53,7 +56,12 @@ subscriptions model =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    ( model, Cmd.none )
+    case msg of
+        EditorInput newVal ->
+            ( { model | editorModel = (Debug.log "newVal: " newVal) }, Cmd.none )
+
+        UrlChange location ->
+            ( model, Cmd.none )
 
 
 view : Model -> Html Msg
@@ -70,7 +78,7 @@ view model =
                 text "Not Found!"
 
 
-showRoute : Route -> Model -> Html msg
+showRoute : Route -> Model -> Html Msg
 showRoute route model =
     case route of
         Home ->
@@ -90,10 +98,19 @@ type alias EditorModel =
 
 initialEditorModel : String
 initialEditorModel =
-    ""
+    "Start typing here..."
 
 
-editor : EditorModel -> Html msg
+editor : EditorModel -> Html Msg
 editor editorModel =
-    div [ class "editor" ]
-        [ text "Editor" ]
+    div
+        [ class "editor" ]
+        [ textarea
+            [ on "input" (Json.Decode.map EditorInput valueDecoder) ]
+            [ text editorModel ]
+        ]
+
+
+valueDecoder : Json.Decode.Decoder String
+valueDecoder =
+    at [ "target", "value" ] string
