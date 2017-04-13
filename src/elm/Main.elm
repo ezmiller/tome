@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Html exposing (Html, Attribute, text, div, nav, h1, ul, li, a, textarea)
 import Html.Attributes exposing (class, href)
-import Html.Events exposing (on)
+import Html.Events exposing (on, onWithOptions)
 import Navigation
 import UrlParser as Url exposing ((</>), (<?>), s, int, stringParam, top)
 import Json.Decode exposing (at, string)
@@ -21,6 +21,7 @@ type Route
 
 type Msg
     = UrlChange Navigation.Location
+    | NewUrl String
     | EditorInput String
 
 
@@ -61,7 +62,12 @@ update msg model =
             ( { model | editorModel = (Debug.log "newVal: " newVal) }, Cmd.none )
 
         UrlChange location ->
-            ( model, Cmd.none )
+            ( { model | route = Url.parsePath route location }
+            , Cmd.none
+            )
+
+        NewUrl url ->
+            ( model, Navigation.newUrl url )
 
 
 view : Model -> Html Msg
@@ -104,26 +110,25 @@ itemLink attributes children =
         }
 
 
-navItem : String -> String -> Bool -> MenuItem msg
+navItem : String -> String -> Bool -> MenuItem Msg
 navItem url label selected =
     itemLink
         [ href url
-
-        -- , onWithOptions "click"
-        --     { stopPropagation = True, preventDefault = True }
-        --     (Json.Decode.succeed (NewUrl url))
+        , onWithOptions "click"
+            { stopPropagation = True, preventDefault = True }
+            (Json.Decode.succeed (NewUrl url))
         ]
         [ text label ]
 
 
-menuItems : List (MenuItem msg)
+menuItems : List (MenuItem Msg)
 menuItems =
     [ navItem "/" "Home" False
     , navItem "/editor" "Edit" False
     ]
 
 
-navbar : Html msg
+navbar : Html Msg
 navbar =
     nav []
         [ div [] [ renderItems menuItems ] ]
