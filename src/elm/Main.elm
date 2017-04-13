@@ -1,7 +1,7 @@
 module Main exposing (..)
 
-import Html exposing (Html, text, div, h1, textarea)
-import Html.Attributes exposing (class)
+import Html exposing (Html, Attribute, text, div, nav, h1, ul, li, a, textarea)
+import Html.Attributes exposing (class, href)
 import Html.Events exposing (on)
 import Navigation
 import UrlParser as Url exposing ((</>), (<?>), s, int, stringParam, top)
@@ -66,26 +66,78 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    let
-        dummy =
-            Debug.log "view::model: " model
-    in
-        case model.route of
-            Just route ->
-                showRoute route model
-
-            Nothing ->
-                text "Not Found!"
+    div []
+        [ navbar
+        , renderCurrentRoute model
+        ]
 
 
-showRoute : Route -> Model -> Html Msg
-showRoute route model =
-    case route of
-        Home ->
+renderCurrentRoute : Model -> Html Msg
+renderCurrentRoute model =
+    case model.route of
+        Just Home ->
             text "Home"
 
-        Editor ->
+        Just Editor ->
             editor model.editorModel
+
+        Nothing ->
+            text "Not Found!"
+
+
+
+-- Navbar
+
+
+type MenuItem msg
+    = MenuItem
+        { attributes : List (Attribute msg)
+        , children : List (Html msg)
+        }
+
+
+itemLink : List (Attribute msg) -> List (Html msg) -> MenuItem msg
+itemLink attributes children =
+    MenuItem
+        { attributes = attributes
+        , children = children
+        }
+
+
+navItem : String -> String -> Bool -> MenuItem msg
+navItem url label selected =
+    itemLink
+        [ href url
+
+        -- , onWithOptions "click"
+        --     { stopPropagation = True, preventDefault = True }
+        --     (Json.Decode.succeed (NewUrl url))
+        ]
+        [ text label ]
+
+
+menuItems : List (MenuItem msg)
+menuItems =
+    [ navItem "/" "Home" False
+    , navItem "/editor" "Edit" False
+    ]
+
+
+navbar : Html msg
+navbar =
+    nav []
+        [ div [] [ renderItems menuItems ] ]
+
+
+renderItem : MenuItem msg -> Html msg
+renderItem (MenuItem { attributes, children }) =
+    li [ class "nav-item" ]
+        [ a ([ class "nav-link" ] ++ attributes) children ]
+
+
+renderItems : List (MenuItem msg) -> Html msg
+renderItems items =
+    ul [] (List.map renderItem items)
 
 
 
