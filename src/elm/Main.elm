@@ -1,11 +1,17 @@
 module Main exposing (..)
 
+import Css exposing (pct, px)
 import Html exposing (Html, Attribute, text, div, nav, h1, ul, li, a, textarea)
 import Html.Attributes exposing (class, href)
 import Html.Events exposing (on, onWithOptions)
+import Json.Decode exposing (at, string)
 import Navigation
 import UrlParser as Url exposing ((</>), (<?>), s, int, stringParam, top)
-import Json.Decode exposing (at, string)
+
+
+styles : List Css.Mixin -> Attribute msg
+styles =
+    Css.asPairs >> Html.Attributes.style
 
 
 type alias Model =
@@ -72,7 +78,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div []
+    div [ class "container" ]
         [ navbar
         , renderCurrentRoute model
         ]
@@ -158,12 +164,23 @@ initialEditorModel =
     "Start typing here..."
 
 
+textAreaStyles =
+    styles
+        [ Css.width (pct 100)
+        , Css.height (px 600)
+        , Css.padding (px 15)
+        , Css.fontSize (px 18)
+        ]
+
+
 editor : EditorModel -> Html Msg
 editor editorModel =
     div
         [ class "editor" ]
         [ textarea
-            [ on "input" (Json.Decode.map EditorInput valueDecoder) ]
+            [ on "input" (Json.Decode.map EditorInput valueDecoder)
+            , textAreaStyles
+            ]
             [ text editorModel ]
         ]
 
