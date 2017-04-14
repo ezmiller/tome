@@ -1,9 +1,9 @@
 module Main exposing (..)
 
 import Css exposing (pct, px)
-import Html exposing (Html, Attribute, text, div, nav, h1, ul, li, a, textarea)
+import Html exposing (Html, Attribute, button, text, div, nav, h1, ul, li, a, textarea)
 import Html.Attributes exposing (class, href)
-import Html.Events exposing (on, onWithOptions)
+import Html.Events exposing (on, onWithOptions, onClick)
 import Json.Decode exposing (at, string)
 import Navigation
 import UrlParser as Url exposing ((</>), (<?>), s, int, stringParam, top)
@@ -26,7 +26,8 @@ type Route
 
 
 type Msg
-    = UrlChange Navigation.Location
+    = Save
+    | UrlChange Navigation.Location
     | NewUrl String
     | EditorInput String
 
@@ -64,6 +65,9 @@ subscriptions model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Save ->
+            ( model, saveDoc model.editorModel )
+
         EditorInput newVal ->
             ( { model | editorModel = (Debug.log "newVal: " newVal) }, Cmd.none )
 
@@ -182,9 +186,19 @@ editor editorModel =
             , textAreaStyles
             ]
             [ text editorModel ]
+        , button [ class "save-btn", onClick Save ] [ text "Save" ]
         ]
 
 
 valueDecoder : Json.Decode.Decoder String
 valueDecoder =
     at [ "target", "value" ] string
+
+
+saveDoc : String -> Cmd Msg
+saveDoc editorModel =
+    let
+        dummy =
+            Debug.log "saveDoc: " editorModel
+    in
+        Cmd.none
