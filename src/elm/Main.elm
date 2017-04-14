@@ -4,7 +4,10 @@ import Css exposing (pct, px)
 import Html exposing (Html, Attribute, button, text, div, nav, h1, ul, li, a, textarea)
 import Html.Attributes exposing (class, href)
 import Html.Events exposing (on, onWithOptions, onClick)
-import Json.Decode exposing (at, string)
+import Http
+import Json.Encode exposing (object)
+import Json.Decode exposing (Decoder, at, string)
+import Json.Decode.Pipeline exposing (..)
 import Navigation
 import UrlParser as Url exposing ((</>), (<?>), s, int, stringParam, top)
 
@@ -26,10 +29,11 @@ type Route
 
 
 type Msg
-    = Save
+    = SaveDocument
     | UrlChange Navigation.Location
     | NewUrl String
     | EditorInput String
+    | DocumentSaved (Result Http.Error DocumentResult)
 
 
 route : Url.Parser (Route -> a) a
@@ -65,8 +69,11 @@ subscriptions model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Save ->
-            ( model, saveDoc model.editorModel )
+        SaveDocument ->
+            ( model, saveDoc model.editorModel DocumentSaved )
+
+        DocumentSaved result ->
+            ( model, Cmd.none )
 
         EditorInput newVal ->
             ( { model | editorModel = (Debug.log "newVal: " newVal) }, Cmd.none )
@@ -186,7 +193,7 @@ editor editorModel =
             , textAreaStyles
             ]
             [ text editorModel ]
-        , button [ class "save-btn", onClick Save ] [ text "Save" ]
+        , button [ class "save-btn", onClick SaveDocument ] [ text "Save" ]
         ]
 
 
@@ -195,10 +202,39 @@ valueDecoder =
     at [ "target", "value" ] string
 
 
-saveDoc : String -> Cmd Msg
-saveDoc editorModel =
+saveDoc : String -> (Result Http.Error DocumentResult -> msg) -> Cmd msg
+saveDoc editorModel msg =
     let
-        dummy =
-            Debug.log "saveDoc: " editorModel
+        url =
+            "http://localhost:3000/documents"
+
+        data =
+            object [ ( "doc-string", Json.Encode.string editorModel ) ]
     in
-        Cmd.none
+        Http.post
+            url
+            (Http.jsonBody data)
+            responseDecoder
+            |> Http.send msg
+
+
+
+-- Cmd.none
+
+
+type alias DocumentResult =
+    { id : String
+    , html : String
+    }
+
+
+responseDecoder : Decoder DocumentResult
+responseDecoder =
+    Json.Decode.at [ "_embedded" ] documentResultDecoder
+
+
+documentResultDecoder : Decoder DocumentResult
+documentResultDecoder =
+    decode DocumentResult
+        |> required "id" Json.Decode.string
+        |> required "html" Json.Decode.string
