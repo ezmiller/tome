@@ -76,7 +76,7 @@ update msg model =
             ( model, Cmd.none )
 
         EditorInput newVal ->
-            ( { model | editorModel = (Debug.log "newVal: " newVal) }, Cmd.none )
+            ( { model | editorModel = newVal }, Cmd.none )
 
         UrlChange location ->
             ( { model | route = Url.parsePath route location }
