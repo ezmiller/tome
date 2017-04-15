@@ -175,6 +175,7 @@ initialEditorModel =
     "Start typing here..."
 
 
+textAreaStyles : Attribute msg
 textAreaStyles =
     styles
         [ Css.width (pct 100)
