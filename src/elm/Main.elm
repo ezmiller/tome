@@ -26,6 +26,7 @@ type alias Model =
 type Route
     = Home
     | Editor
+    | DocumentViewRoute String
 
 
 type Msg
@@ -41,6 +42,7 @@ route =
     Url.oneOf
         [ Url.map Home top
         , Url.map Editor (s "editor")
+        , Url.map DocumentViewRoute (s "doc" </> Url.string)
         ]
 
 
@@ -103,6 +105,9 @@ renderCurrentRoute model =
 
         Just Editor ->
             editor model.editorModel
+
+        Just (DocumentViewRoute id) ->
+            docView model id
 
         Nothing ->
             text "Not Found!"
@@ -235,3 +240,12 @@ documentResultDecoder =
     decode DocumentResult
         |> required "id" Json.Decode.string
         |> required "html" Json.Decode.string
+
+
+
+-- Document View
+
+
+docView : a -> String -> Html msg
+docView model docId =
+    text docId
