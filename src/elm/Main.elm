@@ -219,10 +219,6 @@ saveDoc editorModel msg =
             |> Http.send msg
 
 
-
--- Cmd.none
-
-
 type alias DocumentResult =
     { id : String
     , html : String
