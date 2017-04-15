@@ -10,8 +10,8 @@ import Http
 import Json.Encode exposing (object)
 import Json.Decode exposing (Decoder, at, string)
 import Json.Decode.Pipeline exposing (..)
-import Navigation
-import UrlParser as Url exposing ((</>), (<?>), s, int, stringParam, top)
+import Navigation exposing (Location)
+import Routing exposing (Route(..), parseLocation)
 
 
 styles : List Css.Mixin -> Attribute msg
@@ -20,16 +20,10 @@ styles =
 
 
 type alias Model =
-    { route : Maybe Route
+    { route : Route
     , editorModel : EditorModel
     , document : String
     }
-
-
-type Route
-    = Home
-    | Editor
-    | DocumentViewRoute String
 
 
 type Msg
@@ -42,15 +36,6 @@ type Msg
     | EditorInput String
 
 
-route : Url.Parser (Route -> a) a
-route =
-    Url.oneOf
-        [ Url.map Home top
-        , Url.map Editor (s "editor")
-        , Url.map DocumentViewRoute (s "doc" </> Url.string)
-        ]
-
-
 main : Program Never Model Msg
 main =
     Navigation.program UrlChange
@@ -61,11 +46,11 @@ main =
         }
 
 
-init : Navigation.Location -> ( Model, Cmd Msg )
+init : Location -> ( Model, Cmd Msg )
 init location =
     let
         initialRoute =
-            Url.parsePath route location
+            parseLocation location
 
         cmd =
             getRouteCmd initialRoute
@@ -104,7 +89,7 @@ update msg model =
         UrlChange location ->
             let
                 newRoute =
-                    Url.parsePath route location
+                    parseLocation location
 
                 cmd =
                     getRouteCmd newRoute
@@ -115,10 +100,10 @@ update msg model =
             ( model, Navigation.newUrl url )
 
 
-getRouteCmd : Maybe Route -> Cmd Msg
+getRouteCmd : Route -> Cmd Msg
 getRouteCmd route =
     case route of
-        Just (DocumentViewRoute id) ->
+        DocumentViewRoute id ->
             fetchDoc id DocumentFetched
 
         _ ->
@@ -136,16 +121,16 @@ view model =
 renderCurrentRoute : Model -> Html Msg
 renderCurrentRoute model =
     case model.route of
-        Just Home ->
+        Home ->
             text "Home"
 
-        Just Editor ->
+        Editor ->
             editor model.editorModel
 
-        Just (DocumentViewRoute id) ->
+        DocumentViewRoute id ->
             docView model.document id
 
-        Nothing ->
+        NotFoundRoute ->
             text "Not Found!"
 
 
