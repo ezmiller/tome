@@ -4,6 +4,8 @@ import Css exposing (pct, px)
 import Html exposing (Html, Attribute, button, text, div, nav, h1, ul, li, a, textarea)
 import Html.Attributes exposing (class, href)
 import Html.Events exposing (on, onWithOptions, onClick)
+import HtmlParser
+import HtmlParser.Util
 import Http
 import Json.Encode exposing (object)
 import Json.Decode exposing (Decoder, at, string)
@@ -20,6 +22,7 @@ styles =
 type alias Model =
     { route : Maybe Route
     , editorModel : EditorModel
+    , document : String
     }
 
 
@@ -31,10 +34,12 @@ type Route
 
 type Msg
     = SaveDocument
+    | DocumentSaved (Result Http.Error DocumentResult)
+    | FetchDocument
+    | DocumentFetched (Result Http.Error DocumentResult)
     | UrlChange Navigation.Location
     | NewUrl String
     | EditorInput String
-    | DocumentSaved (Result Http.Error DocumentResult)
 
 
 route : Url.Parser (Route -> a) a
@@ -58,9 +63,16 @@ main =
 
 init : Navigation.Location -> ( Model, Cmd Msg )
 init location =
-    ( Model (Url.parsePath route location) initialEditorModel
-    , Cmd.none
-    )
+    let
+        initialRoute =
+            Url.parsePath route location
+
+        cmd =
+            getRouteCmd initialRoute
+    in
+        ( Model initialRoute initialEditorModel initialDocument
+        , Debug.log "initial cmd: " cmd
+        )
 
 
 subscriptions : Model -> Sub Msg
@@ -77,16 +89,40 @@ update msg model =
         DocumentSaved result ->
             ( model, Cmd.none )
 
+        FetchDocument ->
+            ( model, Cmd.none )
+
+        DocumentFetched (Ok result) ->
+            ( { model | document = result.html }, Cmd.none )
+
+        DocumentFetched (Err error) ->
+            ( model, Cmd.none )
+
         EditorInput newVal ->
             ( { model | editorModel = newVal }, Cmd.none )
 
         UrlChange location ->
-            ( { model | route = Url.parsePath route location }
-            , Cmd.none
-            )
+            let
+                newRoute =
+                    Url.parsePath route location
+
+                cmd =
+                    getRouteCmd newRoute
+            in
+                ( { model | route = newRoute }, cmd )
 
         NewUrl url ->
             ( model, Navigation.newUrl url )
+
+
+getRouteCmd : Maybe Route -> Cmd Msg
+getRouteCmd route =
+    case route of
+        Just (DocumentViewRoute id) ->
+            fetchDoc id DocumentFetched
+
+        _ ->
+            Cmd.none
 
 
 view : Model -> Html Msg
@@ -107,7 +143,7 @@ renderCurrentRoute model =
             editor model.editorModel
 
         Just (DocumentViewRoute id) ->
-            docView model id
+            docView model.document id
 
         Nothing ->
             text "Not Found!"
@@ -215,13 +251,24 @@ saveDoc editorModel msg =
             "http://localhost:3000/documents"
 
         data =
-            object [ ( "doc-string", Json.Encode.string editorModel ) ]
+            object
+                [ ( "doc-string", Json.Encode.string editorModel )
+                , ( "doctype", Json.Encode.string "note" )
+                ]
     in
         Http.post
             url
             (Http.jsonBody data)
             responseDecoder
             |> Http.send msg
+
+
+fetchDoc : String -> (Result Http.Error DocumentResult -> msg) -> Cmd msg
+fetchDoc docId msg =
+    Http.get
+        ("http://localhost:3000/documents/" ++ docId)
+        responseDecoder
+        |> Http.send msg
 
 
 type alias DocumentResult =
@@ -246,6 +293,14 @@ documentResultDecoder =
 -- Document View
 
 
-docView : a -> String -> Html msg
-docView model docId =
-    text docId
+initialDocument : String
+initialDocument =
+    "Loading..."
+
+
+docView : String -> String -> Html msg
+docView document docId =
+    div []
+        (HtmlParser.parse document
+            |> HtmlParser.Util.toVirtualDom
+        )
