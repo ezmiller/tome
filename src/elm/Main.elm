@@ -87,17 +87,22 @@ update msg model =
             ( { model | editorModel = newVal }, Cmd.none )
 
         UrlChange location ->
-            let
-                newRoute =
-                    parseLocation location
-
-                cmd =
-                    getRouteCmd newRoute
-            in
-                ( { model | route = newRoute }, cmd )
+            changeLocation location model
 
         NewUrl url ->
             ( model, Navigation.newUrl url )
+
+
+changeLocation : Location -> Model -> ( Model, Cmd Msg )
+changeLocation location model =
+    let
+        newRoute =
+            parseLocation location
+
+        cmd =
+            getRouteCmd newRoute
+    in
+        ( { model | route = newRoute }, cmd )
 
 
 getRouteCmd : Route -> Cmd Msg
