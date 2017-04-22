@@ -10,6 +10,7 @@ import Http
 import Json.Encode exposing (object)
 import Json.Decode exposing (Decoder, at, string)
 import Json.Decode.Pipeline exposing (..)
+import Navbar exposing (navbar, MenuItem, navItem)
 import Navigation exposing (Location)
 import Routing exposing (Route(..), parseLocation)
 
@@ -115,10 +116,17 @@ getRouteCmd route =
             Cmd.none
 
 
+menuItems : List (MenuItem Msg)
+menuItems =
+    [ navItem NewUrl "/" "Home" False
+    , navItem NewUrl "/editor" "Edit" False
+    ]
+
+
 view : Model -> Html Msg
 view model =
     div [ class "container" ]
-        [ navbar
+        [ navbar menuItems
         , renderCurrentRoute model
         ]
 
@@ -137,60 +145,6 @@ renderCurrentRoute model =
 
         NotFoundRoute ->
             text "Not Found!"
-
-
-
--- Navbar
-
-
-type MenuItem msg
-    = MenuItem
-        { attributes : List (Attribute msg)
-        , children : List (Html msg)
-        }
-
-
-itemLink : List (Attribute msg) -> List (Html msg) -> MenuItem msg
-itemLink attributes children =
-    MenuItem
-        { attributes = attributes
-        , children = children
-        }
-
-
-navItem : String -> String -> Bool -> MenuItem Msg
-navItem url label selected =
-    itemLink
-        [ href url
-        , onWithOptions "click"
-            { stopPropagation = True, preventDefault = True }
-            (Json.Decode.succeed (NewUrl url))
-        ]
-        [ text label ]
-
-
-menuItems : List (MenuItem Msg)
-menuItems =
-    [ navItem "/" "Home" False
-    , navItem "/editor" "Edit" False
-    ]
-
-
-navbar : Html Msg
-navbar =
-    nav []
-        [ div [] [ renderItems menuItems ] ]
-
-
-renderItem : MenuItem msg -> Html msg
-renderItem (MenuItem { attributes, children }) =
-    li [ class "nav-item" ]
-        [ a ([ class "nav-link" ] ++ attributes) children ]
-
-
-renderItems : List (MenuItem msg) -> Html msg
-renderItems items =
-    ul [] (List.map renderItem items)
 
 
 
