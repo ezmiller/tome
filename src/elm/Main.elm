@@ -135,7 +135,7 @@ renderCurrentRoute : Model -> Html Msg
 renderCurrentRoute model =
     case model.route of
         Home ->
-            text "Home"
+            home model
 
         Editor ->
             editor model.editorModel
@@ -145,6 +145,15 @@ renderCurrentRoute model =
 
         NotFoundRoute ->
             text "Not Found!"
+
+
+
+-- Home
+
+
+home : Model -> Html msg
+home model =
+    text "Home"
 
 
 
