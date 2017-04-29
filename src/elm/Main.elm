@@ -194,6 +194,7 @@ home model =
     div [ class "recent-notes" ] (List.map renderNoteLink model.notes)
 
 
+renderNoteLink : { a | id : String, title : String } -> Html msg
 renderNoteLink note =
     li []
         [ a [ href ("/doc/" ++ note.id) ] [ text note.title ] ]
