@@ -37,7 +37,7 @@ styles =
 type alias Model =
     { route : Route
     , editorModel : EditorModel
-    , document : String
+    , document : Document
     , notes : List Document
     }
 
@@ -94,8 +94,8 @@ update msg model =
         FetchDocument ->
             ( model, Cmd.none )
 
-        DocumentFetched (Ok result) ->
-            ( { model | document = result.html }, Cmd.none )
+        DocumentFetched (Ok document) ->
+            ( { model | document = document }, Cmd.none )
 
         DocumentFetched (Err error) ->
             let
@@ -309,17 +309,23 @@ fetchDoc docId msg =
 -- Document View
 
 
-initialDocument : String
+initialDocument : Document
 initialDocument =
-    "Loading..."
+    { id = ""
+    , title = "Loading..."
+    , html = ""
+    }
 
 
-docView : String -> String -> Html msg
+docView : Document -> String -> Html msg
 docView document docId =
     div []
-        (HtmlParser.parse document
-            |> HtmlParser.Util.toVirtualDom
-        )
+        [ h1 [ class "document-title" ] [ text document.title ]
+        , div [ class "document-body" ]
+            (HtmlParser.parse document.html
+                |> HtmlParser.Util.toVirtualDom
+            )
+        ]
 
 
 
