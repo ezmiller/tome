@@ -29,10 +29,10 @@ type alias Model =
 
 type Msg
     = SaveDocument
-    | DocumentSaved (Result Http.Error DocumentResult)
+    | DocumentSaved (Result Http.Error Document)
     | FetchDocument
-    | DocumentFetched (Result Http.Error DocumentResult)
-    | NotesFetched (Result Http.Error (List DocumentResult))
+    | DocumentFetched (Result Http.Error Document)
+    | NotesFetched (Result Http.Error (List Document))
     | UrlChange Navigation.Location
     | NewUrl String
     | EditorInput String
@@ -170,7 +170,7 @@ home model =
     text "Home"
 
 
-fetchNotes : (Result Http.Error (List DocumentResult) -> msg) -> Cmd msg
+fetchNotes : (Result Http.Error (List Document) -> msg) -> Cmd msg
 fetchNotes msg =
     Http.get
         "http://localhost:3000/latest?type=note"
@@ -219,7 +219,7 @@ valueDecoder =
     at [ "target", "value" ] string
 
 
-saveDoc : String -> (Result Http.Error DocumentResult -> msg) -> Cmd msg
+saveDoc : String -> (Result Http.Error Document -> msg) -> Cmd msg
 saveDoc editorModel msg =
     let
         url =
@@ -238,7 +238,7 @@ saveDoc editorModel msg =
             |> Http.send msg
 
 
-fetchDoc : String -> (Result Http.Error DocumentResult -> msg) -> Cmd msg
+fetchDoc : String -> (Result Http.Error Document -> msg) -> Cmd msg
 fetchDoc docId msg =
     Http.get
         ("http://localhost:3000/documents/" ++ docId)
@@ -267,33 +267,33 @@ docView document docId =
 -- Decoders
 
 
-type alias DocumentResult =
+type alias Document =
     { id : String
     , html : String
     }
 
 
 type alias DocumentListResult =
-    List DocumentResult
+    List Document
 
 
-documentResponseDecoder : Decoder DocumentResult
+documentResponseDecoder : Decoder Document
 documentResponseDecoder =
-    Json.Decode.at [ "_embedded" ] documentResultDecoder
+    Json.Decode.at [ "_embedded" ] documentDecoder
 
 
-documentResultDecoder : Decoder DocumentResult
-documentResultDecoder =
-    decode DocumentResult
+documentDecoder : Decoder Document
+documentDecoder =
+    decode Document
         |> required "id" Json.Decode.string
         |> required "html" Json.Decode.string
 
 
-documentListResponseDecoder : Decoder (List DocumentResult)
+documentListResponseDecoder : Decoder (List Document)
 documentListResponseDecoder =
     Json.Decode.at [ "_embedded" ] documentListDecoder
 
 
-documentListDecoder : Decoder (List DocumentResult)
+documentListDecoder : Decoder (List Document)
 documentListDecoder =
-    Json.Decode.list documentResultDecoder
+    Json.Decode.list documentDecoder
