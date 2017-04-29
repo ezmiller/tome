@@ -1,8 +1,22 @@
 module Main exposing (..)
 
 import Css exposing (pct, px)
-import Html exposing (Html, Attribute, button, text, div, nav, h1, ul, li, a, textarea)
-import Html.Attributes exposing (class, href, placeholder)
+import Html
+    exposing
+        ( Html
+        , Attribute
+        , button
+        , text
+        , div
+        , nav
+        , h1
+        , input
+        , ul
+        , li
+        , a
+        , textarea
+        )
+import Html.Attributes exposing (class, href, placeholder, value)
 import Html.Events exposing (on, onWithOptions, onClick)
 import HtmlParser
 import HtmlParser.Util
@@ -36,7 +50,7 @@ type Msg
     | NotesFetched (Result Http.Error (List Document))
     | UrlChange Navigation.Location
     | NewUrl String
-    | EditorInput String
+    | EditorModelUpdate EditorModel
 
 
 main : Program Never Model Msg
@@ -100,8 +114,8 @@ update msg model =
             in
                 ( model, Cmd.none )
 
-        EditorInput newVal ->
-            ( { model | editorModel = newVal }, Cmd.none )
+        EditorModelUpdate updatedEditorModel ->
+            ( { model | editorModel = updatedEditorModel }, Cmd.none )
 
         UrlChange location ->
             changeLocation location model
@@ -198,12 +212,25 @@ fetchNotes msg =
 
 
 type alias EditorModel =
-    String
+    { title : String
+    , text : String
+    }
 
 
-initialEditorModel : String
+initialEditorModel : EditorModel
 initialEditorModel =
-    ""
+    { title = ""
+    , text = ""
+    }
+
+
+titleInputStyles : Attribute msg
+titleInputStyles =
+    styles
+        [ Css.width (pct 50)
+        , Css.fontSize (px 24)
+        , Css.padding (px 10)
+        ]
 
 
 textAreaStyles : Attribute msg
@@ -220,12 +247,27 @@ editor : EditorModel -> Html Msg
 editor editorModel =
     div
         [ class "editor" ]
-        [ textarea
-            [ on "input" (Json.Decode.map EditorInput valueDecoder)
+        [ input
+            [ titleInputStyles
+            , value editorModel.title
+            , placeholder "Untitled"
+            , on "input"
+                (Json.Decode.map
+                    (\s -> EditorModelUpdate (EditorModel s editorModel.text))
+                    valueDecoder
+                )
+            ]
+            []
+        , textarea
+            [ on "input"
+                (Json.Decode.map
+                    (\s -> EditorModelUpdate (EditorModel editorModel.title s))
+                    valueDecoder
+                )
             , placeholder "Start typing here..."
             , textAreaStyles
             ]
-            [ text editorModel ]
+            [ text editorModel.text ]
         , button [ class "save-btn", onClick SaveDocument ] [ text "Save" ]
         ]
 
@@ -235,7 +277,7 @@ valueDecoder =
     at [ "target", "value" ] string
 
 
-saveDoc : String -> (Result Http.Error Document -> msg) -> Cmd msg
+saveDoc : EditorModel -> (Result Http.Error Document -> msg) -> Cmd msg
 saveDoc editorModel msg =
     let
         url =
@@ -243,7 +285,8 @@ saveDoc editorModel msg =
 
         data =
             object
-                [ ( "doc-string", Json.Encode.string editorModel )
+                [ ( "doc-string", Json.Encode.string editorModel.text )
+                , ( "title", Json.Encode.string editorModel.title )
                 , ( "doctype", Json.Encode.string "note" )
                 ]
     in
