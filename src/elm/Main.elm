@@ -32,7 +32,7 @@ type Msg
     | DocumentSaved (Result Http.Error DocumentResult)
     | FetchDocument
     | DocumentFetched (Result Http.Error DocumentResult)
-      -- | NotesFetched (Result Http.Error DocumentListResult)
+    | NotesFetched (Result Http.Error (List DocumentResult))
     | UrlChange Navigation.Location
     | NewUrl String
     | EditorInput String
@@ -85,6 +85,16 @@ update msg model =
         DocumentFetched (Err error) ->
             ( model, Cmd.none )
 
+        NotesFetched (Ok result) ->
+            let
+                dummy =
+                    Debug.log "notes: " result
+            in
+                ( model, Cmd.none )
+
+        NotesFetched (Err error) ->
+            ( model, Cmd.none )
+
         EditorInput newVal ->
             ( { model | editorModel = newVal }, Cmd.none )
 
@@ -110,6 +120,9 @@ changeLocation location model =
 getRouteCmd : Route -> Cmd Msg
 getRouteCmd route =
     case route of
+        Home ->
+            fetchNotes NotesFetched
+
         DocumentViewRoute id ->
             fetchDoc id DocumentFetched
 
@@ -155,6 +168,14 @@ renderCurrentRoute model =
 home : Model -> Html msg
 home model =
     text "Home"
+
+
+fetchNotes : (Result Http.Error (List DocumentResult) -> msg) -> Cmd msg
+fetchNotes msg =
+    Http.get
+        "http://localhost:3000/latest?type=note"
+        documentListResponseDecoder
+        |> Http.send msg
 
 
 
@@ -268,11 +289,11 @@ documentResultDecoder =
         |> required "html" Json.Decode.string
 
 
-documentListResponseDecoder : Decoder DocumentListResult
+documentListResponseDecoder : Decoder (List DocumentResult)
 documentListResponseDecoder =
-    Json.Decode.at [ "_embedded", "documents" ] documentListDecoder
+    Json.Decode.at [ "_embedded" ] documentListDecoder
 
 
-documentListDecoder : Decoder DocumentListResult
+documentListDecoder : Decoder (List DocumentResult)
 documentListDecoder =
     Json.Decode.list documentResultDecoder
