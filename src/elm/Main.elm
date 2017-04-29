@@ -24,6 +24,7 @@ type alias Model =
     { route : Route
     , editorModel : EditorModel
     , document : String
+    , notes : List Document
     }
 
 
@@ -57,7 +58,7 @@ init location =
         cmd =
             getRouteCmd initialRoute
     in
-        ( Model initialRoute initialEditorModel initialDocument
+        ( Model initialRoute initialEditorModel initialDocument initialNotes
         , Debug.log "initial cmd: " cmd
         )
 
@@ -83,17 +84,21 @@ update msg model =
             ( { model | document = result.html }, Cmd.none )
 
         DocumentFetched (Err error) ->
-            ( model, Cmd.none )
-
-        NotesFetched (Ok result) ->
             let
                 dummy =
-                    Debug.log "notes: " result
+                    Debug.log "error: " error
             in
                 ( model, Cmd.none )
 
+        NotesFetched (Ok result) ->
+            ( { model | notes = result }, Cmd.none )
+
         NotesFetched (Err error) ->
-            ( model, Cmd.none )
+            let
+                dummy =
+                    Debug.log "error: " error
+            in
+                ( model, Cmd.none )
 
         EditorInput newVal ->
             ( { model | editorModel = newVal }, Cmd.none )
@@ -165,9 +170,19 @@ renderCurrentRoute model =
 -- Home
 
 
+initialNotes : List Document
+initialNotes =
+    []
+
+
 home : Model -> Html msg
 home model =
-    text "Home"
+    div [ class "recent-notes" ] (List.map renderNoteLink model.notes)
+
+
+renderNoteLink note =
+    li []
+        [ a [ href ("/doc/" ++ note.id) ] [ text note.title ] ]
 
 
 fetchNotes : (Result Http.Error (List Document) -> msg) -> Cmd msg
@@ -269,6 +284,7 @@ docView document docId =
 
 type alias Document =
     { id : String
+    , title : String
     , html : String
     }
 
@@ -286,6 +302,7 @@ documentDecoder : Decoder Document
 documentDecoder =
     decode Document
         |> required "id" Json.Decode.string
+        |> required "title" Json.Decode.string
         |> required "html" Json.Decode.string
 
 
