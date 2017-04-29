@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Css exposing (pct, px)
 import Html exposing (Html, Attribute, button, text, div, nav, h1, ul, li, a, textarea)
-import Html.Attributes exposing (class, href)
+import Html.Attributes exposing (class, href, placeholder)
 import Html.Events exposing (on, onWithOptions, onClick)
 import HtmlParser
 import HtmlParser.Util
@@ -203,7 +203,7 @@ type alias EditorModel =
 
 initialEditorModel : String
 initialEditorModel =
-    "Start typing here..."
+    ""
 
 
 textAreaStyles : Attribute msg
@@ -222,6 +222,7 @@ editor editorModel =
         [ class "editor" ]
         [ textarea
             [ on "input" (Json.Decode.map EditorInput valueDecoder)
+            , placeholder "Start typing here..."
             , textAreaStyles
             ]
             [ text editorModel ]
