@@ -24,14 +24,16 @@ type alias Model =
     { route : Route
     , editorModel : EditorModel
     , document : String
+    , notes : List Document
     }
 
 
 type Msg
     = SaveDocument
-    | DocumentSaved (Result Http.Error DocumentResult)
+    | DocumentSaved (Result Http.Error Document)
     | FetchDocument
-    | DocumentFetched (Result Http.Error DocumentResult)
+    | DocumentFetched (Result Http.Error Document)
+    | NotesFetched (Result Http.Error (List Document))
     | UrlChange Navigation.Location
     | NewUrl String
     | EditorInput String
@@ -56,7 +58,7 @@ init location =
         cmd =
             getRouteCmd initialRoute
     in
-        ( Model initialRoute initialEditorModel initialDocument
+        ( Model initialRoute initialEditorModel initialDocument initialNotes
         , Debug.log "initial cmd: " cmd
         )
 
@@ -82,7 +84,21 @@ update msg model =
             ( { model | document = result.html }, Cmd.none )
 
         DocumentFetched (Err error) ->
-            ( model, Cmd.none )
+            let
+                dummy =
+                    Debug.log "error: " error
+            in
+                ( model, Cmd.none )
+
+        NotesFetched (Ok result) ->
+            ( { model | notes = result }, Cmd.none )
+
+        NotesFetched (Err error) ->
+            let
+                dummy =
+                    Debug.log "error: " error
+            in
+                ( model, Cmd.none )
 
         EditorInput newVal ->
             ( { model | editorModel = newVal }, Cmd.none )
@@ -109,6 +125,9 @@ changeLocation location model =
 getRouteCmd : Route -> Cmd Msg
 getRouteCmd route =
     case route of
+        Home ->
+            fetchNotes NotesFetched
+
         DocumentViewRoute id ->
             fetchDoc id DocumentFetched
 
@@ -135,7 +154,7 @@ renderCurrentRoute : Model -> Html Msg
 renderCurrentRoute model =
     case model.route of
         Home ->
-            text "Home"
+            home model
 
         Editor ->
             editor model.editorModel
@@ -145,6 +164,33 @@ renderCurrentRoute model =
 
         NotFoundRoute ->
             text "Not Found!"
+
+
+
+-- Home
+
+
+initialNotes : List Document
+initialNotes =
+    []
+
+
+home : Model -> Html msg
+home model =
+    div [ class "recent-notes" ] (List.map renderNoteLink model.notes)
+
+
+renderNoteLink note =
+    li []
+        [ a [ href ("/doc/" ++ note.id) ] [ text note.title ] ]
+
+
+fetchNotes : (Result Http.Error (List Document) -> msg) -> Cmd msg
+fetchNotes msg =
+    Http.get
+        "http://localhost:3000/latest?type=note"
+        documentListResponseDecoder
+        |> Http.send msg
 
 
 
@@ -188,7 +234,7 @@ valueDecoder =
     at [ "target", "value" ] string
 
 
-saveDoc : String -> (Result Http.Error DocumentResult -> msg) -> Cmd msg
+saveDoc : String -> (Result Http.Error Document -> msg) -> Cmd msg
 saveDoc editorModel msg =
     let
         url =
@@ -203,34 +249,16 @@ saveDoc editorModel msg =
         Http.post
             url
             (Http.jsonBody data)
-            responseDecoder
+            documentResponseDecoder
             |> Http.send msg
 
 
-fetchDoc : String -> (Result Http.Error DocumentResult -> msg) -> Cmd msg
+fetchDoc : String -> (Result Http.Error Document -> msg) -> Cmd msg
 fetchDoc docId msg =
     Http.get
         ("http://localhost:3000/documents/" ++ docId)
-        responseDecoder
+        documentResponseDecoder
         |> Http.send msg
-
-
-type alias DocumentResult =
-    { id : String
-    , html : String
-    }
-
-
-responseDecoder : Decoder DocumentResult
-responseDecoder =
-    Json.Decode.at [ "_embedded" ] documentResultDecoder
-
-
-documentResultDecoder : Decoder DocumentResult
-documentResultDecoder =
-    decode DocumentResult
-        |> required "id" Json.Decode.string
-        |> required "html" Json.Decode.string
 
 
 
@@ -248,3 +276,41 @@ docView document docId =
         (HtmlParser.parse document
             |> HtmlParser.Util.toVirtualDom
         )
+
+
+
+-- Decoders
+
+
+type alias Document =
+    { id : String
+    , title : String
+    , html : String
+    }
+
+
+type alias DocumentListResult =
+    List Document
+
+
+documentResponseDecoder : Decoder Document
+documentResponseDecoder =
+    Json.Decode.at [ "_embedded" ] documentDecoder
+
+
+documentDecoder : Decoder Document
+documentDecoder =
+    decode Document
+        |> required "id" Json.Decode.string
+        |> required "title" Json.Decode.string
+        |> required "html" Json.Decode.string
+
+
+documentListResponseDecoder : Decoder (List Document)
+documentListResponseDecoder =
+    Json.Decode.at [ "_embedded" ] documentListDecoder
+
+
+documentListDecoder : Decoder (List Document)
+documentListDecoder =
+    Json.Decode.list documentDecoder
