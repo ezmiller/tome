@@ -32,6 +32,7 @@ type Msg
     | DocumentSaved (Result Http.Error DocumentResult)
     | FetchDocument
     | DocumentFetched (Result Http.Error DocumentResult)
+      -- | NotesFetched (Result Http.Error DocumentListResult)
     | UrlChange Navigation.Location
     | NewUrl String
     | EditorInput String
@@ -212,7 +213,7 @@ saveDoc editorModel msg =
         Http.post
             url
             (Http.jsonBody data)
-            responseDecoder
+            documentResponseDecoder
             |> Http.send msg
 
 
@@ -220,26 +221,8 @@ fetchDoc : String -> (Result Http.Error DocumentResult -> msg) -> Cmd msg
 fetchDoc docId msg =
     Http.get
         ("http://localhost:3000/documents/" ++ docId)
-        responseDecoder
+        documentResponseDecoder
         |> Http.send msg
-
-
-type alias DocumentResult =
-    { id : String
-    , html : String
-    }
-
-
-responseDecoder : Decoder DocumentResult
-responseDecoder =
-    Json.Decode.at [ "_embedded" ] documentResultDecoder
-
-
-documentResultDecoder : Decoder DocumentResult
-documentResultDecoder =
-    decode DocumentResult
-        |> required "id" Json.Decode.string
-        |> required "html" Json.Decode.string
 
 
 
@@ -257,3 +240,39 @@ docView document docId =
         (HtmlParser.parse document
             |> HtmlParser.Util.toVirtualDom
         )
+
+
+
+-- Decoders
+
+
+type alias DocumentResult =
+    { id : String
+    , html : String
+    }
+
+
+type alias DocumentListResult =
+    List DocumentResult
+
+
+documentResponseDecoder : Decoder DocumentResult
+documentResponseDecoder =
+    Json.Decode.at [ "_embedded" ] documentResultDecoder
+
+
+documentResultDecoder : Decoder DocumentResult
+documentResultDecoder =
+    decode DocumentResult
+        |> required "id" Json.Decode.string
+        |> required "html" Json.Decode.string
+
+
+documentListResponseDecoder : Decoder DocumentListResult
+documentListResponseDecoder =
+    Json.Decode.at [ "_embedded", "documents" ] documentListDecoder
+
+
+documentListDecoder : Decoder DocumentListResult
+documentListDecoder =
+    Json.Decode.list documentResultDecoder
