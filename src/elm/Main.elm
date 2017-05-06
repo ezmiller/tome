@@ -1,13 +1,25 @@
 module Main exposing (..)
 
 import Css exposing (pct, px)
-import Html exposing (Html, Attribute, button, text, div, nav, h1, ul, li, a, textarea)
-import Html.Attributes exposing (class, href)
-import Html.Events exposing (on, onWithOptions, onClick)
+import Html
+    exposing
+        ( Html
+        , Attribute
+        , button
+        , text
+        , div
+        , nav
+        , h1
+        , input
+        , ul
+        , li
+        , a
+        , textarea
+        )
+import Html.Attributes exposing (class, href, placeholder, value)
 import HtmlParser
 import HtmlParser.Util
 import Http
-import Json.Encode exposing (object)
 import Json.Decode exposing (Decoder, at, string)
 import Json.Decode.Pipeline exposing (..)
 import Navbar exposing (navbar, MenuItem, navItem)
@@ -22,21 +34,17 @@ styles =
 
 type alias Model =
     { route : Route
-    , editorModel : EditorModel
-    , document : String
+    , document : Document
     , notes : List Document
     }
 
 
 type Msg
-    = SaveDocument
-    | DocumentSaved (Result Http.Error Document)
-    | FetchDocument
+    = FetchDocument
     | DocumentFetched (Result Http.Error Document)
     | NotesFetched (Result Http.Error (List Document))
     | UrlChange Navigation.Location
     | NewUrl String
-    | EditorInput String
 
 
 main : Program Never Model Msg
@@ -58,7 +66,7 @@ init location =
         cmd =
             getRouteCmd initialRoute
     in
-        ( Model initialRoute initialEditorModel initialDocument initialNotes
+        ( Model initialRoute initialDocument initialNotes
         , Debug.log "initial cmd: " cmd
         )
 
@@ -71,17 +79,11 @@ subscriptions model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        SaveDocument ->
-            ( model, saveDoc model.editorModel DocumentSaved )
-
-        DocumentSaved result ->
-            ( model, Cmd.none )
-
         FetchDocument ->
             ( model, Cmd.none )
 
-        DocumentFetched (Ok result) ->
-            ( { model | document = result.html }, Cmd.none )
+        DocumentFetched (Ok document) ->
+            ( { model | document = document }, Cmd.none )
 
         DocumentFetched (Err error) ->
             let
@@ -99,9 +101,6 @@ update msg model =
                     Debug.log "error: " error
             in
                 ( model, Cmd.none )
-
-        EditorInput newVal ->
-            ( { model | editorModel = newVal }, Cmd.none )
 
         UrlChange location ->
             changeLocation location model
@@ -137,9 +136,7 @@ getRouteCmd route =
 
 menuItems : List (MenuItem Msg)
 menuItems =
-    [ navItem NewUrl "/" "Home" False
-    , navItem NewUrl "/editor" "Edit" False
-    ]
+    [ navItem NewUrl "/" "Home" False ]
 
 
 view : Model -> Html Msg
@@ -155,9 +152,6 @@ renderCurrentRoute model =
     case model.route of
         Home ->
             home model
-
-        Editor ->
-            editor model.editorModel
 
         DocumentViewRoute id ->
             docView model.document id
@@ -180,6 +174,7 @@ home model =
     div [ class "recent-notes" ] (List.map renderNoteLink model.notes)
 
 
+renderNoteLink : { a | id : String, title : String } -> Html msg
 renderNoteLink note =
     li []
         [ a [ href ("/doc/" ++ note.id) ] [ text note.title ] ]
@@ -193,64 +188,9 @@ fetchNotes msg =
         |> Http.send msg
 
 
-
--- Editor
-
-
-type alias EditorModel =
-    String
-
-
-initialEditorModel : String
-initialEditorModel =
-    "Start typing here..."
-
-
-textAreaStyles : Attribute msg
-textAreaStyles =
-    styles
-        [ Css.width (pct 100)
-        , Css.height (px 600)
-        , Css.padding (px 15)
-        , Css.fontSize (px 18)
-        ]
-
-
-editor : EditorModel -> Html Msg
-editor editorModel =
-    div
-        [ class "editor" ]
-        [ textarea
-            [ on "input" (Json.Decode.map EditorInput valueDecoder)
-            , textAreaStyles
-            ]
-            [ text editorModel ]
-        , button [ class "save-btn", onClick SaveDocument ] [ text "Save" ]
-        ]
-
-
 valueDecoder : Json.Decode.Decoder String
 valueDecoder =
     at [ "target", "value" ] string
-
-
-saveDoc : String -> (Result Http.Error Document -> msg) -> Cmd msg
-saveDoc editorModel msg =
-    let
-        url =
-            "http://localhost:3000/documents"
-
-        data =
-            object
-                [ ( "doc-string", Json.Encode.string editorModel )
-                , ( "doctype", Json.Encode.string "note" )
-                ]
-    in
-        Http.post
-            url
-            (Http.jsonBody data)
-            documentResponseDecoder
-            |> Http.send msg
 
 
 fetchDoc : String -> (Result Http.Error Document -> msg) -> Cmd msg
@@ -265,17 +205,23 @@ fetchDoc docId msg =
 -- Document View
 
 
-initialDocument : String
+initialDocument : Document
 initialDocument =
-    "Loading..."
+    { id = ""
+    , title = "Loading..."
+    , html = ""
+    }
 
 
-docView : String -> String -> Html msg
+docView : Document -> String -> Html msg
 docView document docId =
     div []
-        (HtmlParser.parse document
-            |> HtmlParser.Util.toVirtualDom
-        )
+        [ h1 [ class "document-title" ] [ text document.title ]
+        , div [ class "document-body" ]
+            (HtmlParser.parse document.html
+                |> HtmlParser.Util.toVirtualDom
+            )
+        ]
 
 
 
