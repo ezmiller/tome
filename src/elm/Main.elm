@@ -249,6 +249,7 @@ type alias Document =
     , title : String
     , html : String
     , created : Date
+    , updated : Date
     }
 
 
@@ -268,6 +269,7 @@ documentDecoder =
         |> required "title" Json.Decode.string
         |> required "html" Json.Decode.string
         |> required "created-at" dateDecoder
+        |> required "updated-at" dateDecoder
 
 
 dateDecoder : Decoder Date
