@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import Css exposing (pct, px)
+import Date exposing (Date, fromString)
 import Html
     exposing
         ( Html
@@ -247,6 +248,7 @@ type alias Document =
     { id : String
     , title : String
     , html : String
+    , created : Maybe Date
     }
 
 
@@ -265,6 +267,21 @@ documentDecoder =
         |> required "id" Json.Decode.string
         |> required "title" Json.Decode.string
         |> required "html" Json.Decode.string
+        |> required "created-at" dateDecoder
+
+
+dateDecoder : Decoder (Maybe Date)
+dateDecoder =
+    Json.Decode.andThen
+        (\string ->
+            case Date.fromString string of
+                Ok date ->
+                    Json.Decode.succeed <| Just date
+
+                Err err ->
+                    Json.Decode.fail err
+        )
+        Json.Decode.string
 
 
 documentListResponseDecoder : Decoder (List Document)
