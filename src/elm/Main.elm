@@ -6,17 +6,22 @@ import Html
     exposing
         ( Html
         , Attribute
+        , a
+        , article
         , button
         , text
         , div
+        , h1
+        , h2
         , header
         , nav
         , h1
         , input
         , ul
         , li
-        , a
+        , span
         , textarea
+        , time
         )
 import Html.Attributes exposing (class, href, placeholder, value)
 import HtmlParser
@@ -181,13 +186,28 @@ initialNotes =
 
 home : Model -> Html msg
 home model =
-    div [ class "recent-notes" ] (List.map renderNoteLink model.notes)
+    ul [ class "post-list" ] (List.map renderNoteLink model.notes)
 
 
-renderNoteLink : { a | id : String, title : String } -> Html msg
+renderNoteLink : Document -> Html msg
 renderNoteLink note =
     li []
-        [ a [ href ("/doc/" ++ note.id) ] [ text note.title ] ]
+        [ article []
+            [ h2 [] [ a [ href ("/doc/" ++ note.id) ] [ text note.title ] ]
+            , span [ class "post-meta" ]
+                [ time [] [ text (formatDate note.created) ]
+                ]
+            ]
+        ]
+
+
+formatDate : Date -> String
+formatDate date =
+    (toString (Date.month date))
+        ++ " "
+        ++ (toString (Date.day date))
+        ++ ", "
+        ++ (toString (Date.year date))
 
 
 fetchNotes : (Result Http.Error (List Document) -> msg) -> Cmd msg
