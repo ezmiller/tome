@@ -28,6 +28,11 @@ import Navigation exposing (Location)
 import Routing exposing (Route(..), parseLocation)
 
 
+baseUrl : String
+baseUrl =
+    "http://localhost:6789"
+
+
 styles : List Css.Mixin -> Attribute msg
 styles =
     Css.asPairs >> Html.Attributes.style
@@ -193,7 +198,7 @@ renderNoteLink note =
 fetchNotes : (Result Http.Error (List Document) -> msg) -> Cmd msg
 fetchNotes msg =
     Http.get
-        "http://localhost:3000/latest?type=note"
+        (baseUrl ++ "/latest?type=note")
         documentListResponseDecoder
         |> Http.send msg
 
@@ -206,7 +211,7 @@ valueDecoder =
 fetchDoc : String -> (Result Http.Error Document -> msg) -> Cmd msg
 fetchDoc docId msg =
     Http.get
-        ("http://localhost:3000/documents/" ++ docId)
+        (baseUrl ++ "/documents/" ++ docId)
         documentResponseDecoder
         |> Http.send msg
 
