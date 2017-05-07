@@ -248,7 +248,7 @@ type alias Document =
     { id : String
     , title : String
     , html : String
-    , created : Maybe Date
+    , created : Date
     }
 
 
@@ -270,13 +270,13 @@ documentDecoder =
         |> required "created-at" dateDecoder
 
 
-dateDecoder : Decoder (Maybe Date)
+dateDecoder : Decoder Date
 dateDecoder =
     Json.Decode.andThen
         (\string ->
             case Date.fromString string of
                 Ok date ->
-                    Json.Decode.succeed <| Just date
+                    Json.Decode.succeed <| date
 
                 Err err ->
                     Json.Decode.fail err
