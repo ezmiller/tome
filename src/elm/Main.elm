@@ -8,6 +8,7 @@ import Html
         , button
         , text
         , div
+        , header
         , nav
         , h1
         , input
@@ -142,7 +143,7 @@ menuItems =
 view : Model -> Html Msg
 view model =
     div [ class "container" ]
-        [ navbar menuItems
+        [ pageHeader
         , renderCurrentRoute model
         ]
 
@@ -158,6 +159,15 @@ renderCurrentRoute model =
 
         NotFoundRoute ->
             text "Not Found!"
+
+
+
+-- Header
+
+
+pageHeader : Html msg
+pageHeader =
+    header [] [ h1 [ class "site-title" ] [ text "HumansCode / Open Notebook" ] ]
 
 
 
