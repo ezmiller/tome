@@ -186,7 +186,22 @@ initialNotes =
 
 home : Model -> Html msg
 home model =
-    ul [ class "post-list" ] (List.map renderNoteLink model.notes)
+    ul [ class "post-list" ]
+        (List.sortWith
+            descendingUpdatedDates
+            model.notes
+            |> List.map renderNoteLink
+        )
+
+
+descendingUpdatedDates : { a | updated : Date } -> { b | updated : Date } -> Order
+descendingUpdatedDates a b =
+    case (Date.toTime a.updated) < (Date.toTime b.updated) of
+        True ->
+            GT
+
+        False ->
+            LT
 
 
 renderNoteLink : Document -> Html msg
