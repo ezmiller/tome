@@ -26,6 +26,7 @@ import Json.Decode exposing (Decoder, at, string)
 import Json.Decode.Pipeline exposing (..)
 import Navbar exposing (navbar, MenuItem, navItem)
 import Navigation exposing (Location)
+import RemoteData exposing (RemoteData(..), WebData)
 import Routing exposing (Route(..), parseLocation)
 
 
@@ -41,14 +42,14 @@ styles =
 
 type alias Model =
     { route : Route
-    , document : Document
+    , document : WebData Document
     , notes : List Document
     }
 
 
 type Msg
     = FetchDocument
-    | DocumentFetched (Result Http.Error Document)
+    | DocumentFetched (WebData Document)
     | NotesFetched (Result Http.Error (List Document))
     | UrlChange Navigation.Location
     | NewUrl String
@@ -89,15 +90,8 @@ update msg model =
         FetchDocument ->
             ( model, Cmd.none )
 
-        DocumentFetched (Ok document) ->
-            ( { model | document = document }, Cmd.none )
-
-        DocumentFetched (Err error) ->
-            let
-                dummy =
-                    Debug.log "error: " error
-            in
-                ( model, Cmd.none )
+        DocumentFetched response ->
+            ( { model | document = response }, Cmd.none )
 
         NotesFetched (Ok result) ->
             ( { model | notes = result }, Cmd.none )
@@ -135,7 +129,7 @@ getRouteCmd route =
             fetchNotes NotesFetched
 
         DocumentViewRoute id ->
-            fetchDoc id DocumentFetched
+            fetchDoc id
 
         _ ->
             Cmd.none
@@ -209,35 +203,41 @@ valueDecoder =
     at [ "target", "value" ] string
 
 
-fetchDoc : String -> (Result Http.Error Document -> msg) -> Cmd msg
-fetchDoc docId msg =
-    Http.get
-        (baseUrl ++ "/documents/" ++ docId)
-        documentResponseDecoder
-        |> Http.send msg
+fetchDoc : String -> Cmd Msg
+fetchDoc docId =
+    Http.get (baseUrl ++ "/documents/" ++ docId) documentResponseDecoder
+        |> RemoteData.sendRequest
+        |> Cmd.map DocumentFetched
 
 
 
 -- Document View
 
 
-initialDocument : Document
+initialDocument : WebData Document
 initialDocument =
-    { id = ""
-    , title = "Loading..."
-    , html = ""
-    , created = Nothing
-    }
+    Loading
 
 
-docView : Document -> String -> Html msg
+docView : WebData Document -> String -> Html msg
 docView document docId =
-    div []
-        [ div [ class "document-body" ]
-            (HtmlParser.parse document.html
-                |> HtmlParser.Util.toVirtualDom
-            )
-        ]
+    case document of
+        NotAsked ->
+            text "Not Asked!"
+
+        Loading ->
+            div [] [ text "Loading..." ]
+
+        Failure err ->
+            div [] [ text "Oops! Something went wrong." ]
+
+        Success document ->
+            div []
+                [ div [ class "document-body" ]
+                    (HtmlParser.parse document.html
+                        |> HtmlParser.Util.toVirtualDom
+                    )
+                ]
 
 
 
