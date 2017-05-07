@@ -225,14 +225,14 @@ initialDocument =
     { id = ""
     , title = "Loading..."
     , html = ""
+    , created = Nothing
     }
 
 
 docView : Document -> String -> Html msg
 docView document docId =
     div []
-        [ h1 [ class "document-title" ] [ text document.title ]
-        , div [ class "document-body" ]
+        [ div [ class "document-body" ]
             (HtmlParser.parse document.html
                 |> HtmlParser.Util.toVirtualDom
             )
