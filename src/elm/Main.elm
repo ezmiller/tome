@@ -48,14 +48,14 @@ styles =
 type alias Model =
     { route : Route
     , document : WebData Document
-    , notes : List Document
+    , notes : WebData (List Document)
     }
 
 
 type Msg
     = FetchDocument
     | DocumentFetched (WebData Document)
-    | NotesFetched (Result Http.Error (List Document))
+    | NotesFetched (WebData (List Document))
     | UrlChange Navigation.Location
     | NewUrl String
 
@@ -98,15 +98,8 @@ update msg model =
         DocumentFetched response ->
             ( { model | document = response }, Cmd.none )
 
-        NotesFetched (Ok result) ->
-            ( { model | notes = result }, Cmd.none )
-
-        NotesFetched (Err error) ->
-            let
-                dummy =
-                    Debug.log "error: " error
-            in
-                ( model, Cmd.none )
+        NotesFetched response ->
+            ( { model | notes = response }, Cmd.none )
 
         UrlChange location ->
             changeLocation location model
@@ -131,7 +124,7 @@ getRouteCmd : Route -> Cmd Msg
 getRouteCmd route =
     case route of
         Home ->
-            fetchNotes NotesFetched
+            fetchNotes
 
         DocumentViewRoute id ->
             fetchDoc id
@@ -179,19 +172,30 @@ pageHeader =
 -- Home
 
 
-initialNotes : List Document
+initialNotes : WebData (List Document)
 initialNotes =
-    []
+    Loading
 
 
 home : Model -> Html msg
 home model =
-    ul [ class "post-list" ]
-        (List.sortWith
-            descendingUpdatedDates
-            model.notes
-            |> List.map renderNoteLink
-        )
+    case model.notes of
+        NotAsked ->
+            text "Not Asked!"
+
+        Loading ->
+            div [] [ text "Loading..." ]
+
+        Failure err ->
+            div [] [ text "Oops! Something went wrong." ]
+
+        Success notes ->
+            ul [ class "post-list" ]
+                (List.sortWith
+                    descendingUpdatedDates
+                    notes
+                    |> List.map renderNoteLink
+                )
 
 
 descendingUpdatedDates : { a | updated : Date } -> { b | updated : Date } -> Order
@@ -225,12 +229,13 @@ formatDate date =
         ++ (toString (Date.year date))
 
 
-fetchNotes : (Result Http.Error (List Document) -> msg) -> Cmd msg
-fetchNotes msg =
+fetchNotes : Cmd Msg
+fetchNotes =
     Http.get
         (baseUrl ++ "/latest?type=note")
         documentListResponseDecoder
-        |> Http.send msg
+        |> RemoteData.sendRequest
+        |> Cmd.map NotesFetched
 
 
 valueDecoder : Json.Decode.Decoder String
