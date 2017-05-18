@@ -19,11 +19,6 @@ var outputFilename = TARGET_ENV === 'production' ? '[name]-[hash].js' : '[name].
 // common webpack config
 var commonConfig = {
 
-  output: {
-    path:       outputPath,
-    filename: `/static/js/${outputFilename}`,
-    // publicPath: '/'
-  },
 
   resolve: {
     extensions: ['', '.js', '.elm']
@@ -41,11 +36,6 @@ var commonConfig = {
 
   plugins: [
     new webpack.EnvironmentPlugin(['API_ROOT']),
-    new HtmlWebpackPlugin({
-      template: 'src/static/index.html',
-      inject:   'body',
-      filename: 'index.html'
-    })
   ],
 
   postcss: [ autoprefixer( { browsers: ['last 2 versions'] } ) ],
@@ -57,17 +47,30 @@ if ( TARGET_ENV === 'development' ) {
   console.log( 'Serving locally...');
 
   module.exports = merge( commonConfig, {
-
     entry: [
       'webpack-dev-server/client?http://localhost:8080',
       entryPath
     ],
+
+    output: {
+      path:       outputPath,
+      filename: `/static/js/${outputFilename}`,
+      // publicPath: './'
+    },
 
     devServer: {
       // serve index.html in place of 404 responses
       historyApiFallback: true,
       contentBase: './src',
     },
+
+    plugins: [
+      new HtmlWebpackPlugin({
+        template: 'src/static/index-dev.html',
+        inject:   'body',
+        filename: 'index.html'
+      })
+    ],
 
     module: {
       loaders: [
@@ -99,6 +102,12 @@ if ( TARGET_ENV === 'production' ) {
 
     entry: entryPath,
 
+    output: {
+      path:       outputPath,
+      filename: `static/js/${outputFilename}`,
+      publicPath: '/notebook'
+    },
+
     module: {
       loaders: [
         {
@@ -118,6 +127,12 @@ if ( TARGET_ENV === 'production' ) {
     },
 
     plugins: [
+      new HtmlWebpackPlugin({
+        template: 'src/static/index-prod.html',
+        inject:   'body',
+        filename: 'index.html'
+      }),
+
       new CopyWebpackPlugin([
         {
           from: 'src/static/img/',
@@ -134,11 +149,11 @@ if ( TARGET_ENV === 'production' ) {
       // new ExtractTextPlugin( 'static/css/[name]-[hash].css', { allChunks: true } ),
 
       // minify & mangle JS/CSS
-      new webpack.optimize.UglifyJsPlugin({
-          minimize:   true,
-          compressor: { warnings: false }
-          // mangle:  true
-      })
+      // new webpack.optimize.UglifyJsPlugin({
+      //     minimize:   true,
+      //     compressor: { warnings: false }
+      //     // mangle:  true
+      // })
     ]
 
   });

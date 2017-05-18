@@ -74,9 +74,6 @@ main =
 init : Flags -> Location -> ( Model, Cmd Msg )
 init flags location =
     let
-        dummy =
-            Debug.log "flags: " flags
-
         initialRoute =
             parseLocation location
 
@@ -116,7 +113,7 @@ changeLocation : Location -> Model -> ( Model, Cmd Msg )
 changeLocation location model =
     let
         newRoute =
-            parseLocation location
+            Debug.log "newRoute: " parseLocation location
 
         cmd =
             getRouteCmd model.apiRoot newRoute
@@ -216,7 +213,7 @@ renderNoteLink : Document -> Html msg
 renderNoteLink note =
     li []
         [ article []
-            [ h2 [] [ a [ href ("/doc/" ++ note.id) ] [ text note.title ] ]
+            [ h2 [] [ a [ href ("/notebook/doc/" ++ note.id) ] [ text note.title ] ]
             , span [ class "post-meta" ]
                 [ time [] [ text (formatDate note.created) ]
                 ]

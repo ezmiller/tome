@@ -13,8 +13,8 @@ type Route
 matchers : Parser (Route -> a) a
 matchers =
     oneOf
-        [ map Home top
-        , map DocumentViewRoute (s "doc" </> string)
+        [ map Home (s "notebook")
+        , map DocumentViewRoute (s "notebook" </> s "doc" </> string)
         ]
 
 
