@@ -105,15 +105,15 @@ if ( TARGET_ENV === 'production' ) {
           test:    /\.elm$/,
           exclude: [/elm-stuff/, /node_modules/],
           loader:  'elm-webpack'
-        },
-        {
-          test: /\.(css|scss)$/,
-          loader: ExtractTextPlugin.extract( 'style-loader', [
-            'css-loader',
-            'postcss-loader',
-            'sass-loader'
-          ])
         }
+        // {
+        //   test: /\.(css|scss)$/,
+        //   loader: ExtractTextPlugin.extract( 'style-loader', [
+        //     'css-loader',
+        //     'postcss-loader',
+        //     'sass-loader'
+        //   ])
+        // }
       ]
     },
 
@@ -131,7 +131,7 @@ if ( TARGET_ENV === 'production' ) {
       new webpack.optimize.OccurenceOrderPlugin(),
 
       // extract CSS into a separate file
-      new ExtractTextPlugin( 'static/css/[name]-[hash].css', { allChunks: true } ),
+      // new ExtractTextPlugin( 'static/css/[name]-[hash].css', { allChunks: true } ),
 
       // minify & mangle JS/CSS
       new webpack.optimize.UglifyJsPlugin({
