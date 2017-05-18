@@ -35,18 +35,14 @@ import RemoteData exposing (RemoteData(..), WebData)
 import Routing exposing (Route(..), parseLocation)
 
 
-baseUrl : String
-baseUrl =
-    "http://localhost:6789"
-
-
 styles : List Css.Mixin -> Attribute msg
 styles =
     Css.asPairs >> Html.Attributes.style
 
 
 type alias Model =
-    { route : Route
+    { apiRoot : String
+    , route : Route
     , document : WebData Document
     , notes : WebData (List Document)
     }
@@ -60,9 +56,14 @@ type Msg
     | NewUrl String
 
 
-main : Program Never Model Msg
+type alias Flags =
+    { apiRoot : String
+    }
+
+
+main : Program Flags Model Msg
 main =
-    Navigation.program UrlChange
+    Navigation.programWithFlags UrlChange
         { init = init
         , view = view
         , update = update
@@ -70,16 +71,19 @@ main =
         }
 
 
-init : Location -> ( Model, Cmd Msg )
-init location =
+init : Flags -> Location -> ( Model, Cmd Msg )
+init flags location =
     let
+        dummy =
+            Debug.log "flags: " flags
+
         initialRoute =
             parseLocation location
 
         cmd =
-            getRouteCmd initialRoute
+            getRouteCmd flags.apiRoot initialRoute
     in
-        ( Model initialRoute initialDocument initialNotes
+        ( Model flags.apiRoot initialRoute initialDocument initialNotes
         , Debug.log "initial cmd: " cmd
         )
 
@@ -115,19 +119,19 @@ changeLocation location model =
             parseLocation location
 
         cmd =
-            getRouteCmd newRoute
+            getRouteCmd model.apiRoot newRoute
     in
         ( { model | route = newRoute }, cmd )
 
 
-getRouteCmd : Route -> Cmd Msg
-getRouteCmd route =
+getRouteCmd : String -> Route -> Cmd Msg
+getRouteCmd apiRoot route =
     case route of
         Home ->
-            fetchNotes
+            fetchNotes apiRoot
 
         DocumentViewRoute id ->
-            fetchDoc id
+            fetchDoc apiRoot id
 
         _ ->
             Cmd.none
@@ -227,12 +231,16 @@ formatDate date =
         ++ (toString (Date.day date))
         ++ ", "
         ++ (toString (Date.year date))
+        ++ " at "
+        ++ (toString (Date.hour date))
+        ++ ":"
+        ++ (toString (Date.minute date))
 
 
-fetchNotes : Cmd Msg
-fetchNotes =
+fetchNotes : String -> Cmd Msg
+fetchNotes apiRoot =
     Http.get
-        (baseUrl ++ "/latest?type=note")
+        (apiRoot ++ "/latest?type=note")
         documentListResponseDecoder
         |> RemoteData.sendRequest
         |> Cmd.map NotesFetched
@@ -243,9 +251,9 @@ valueDecoder =
     at [ "target", "value" ] string
 
 
-fetchDoc : String -> Cmd Msg
-fetchDoc docId =
-    Http.get (baseUrl ++ "/documents/" ++ docId) documentResponseDecoder
+fetchDoc : String -> String -> Cmd Msg
+fetchDoc apiRoot docId =
+    Http.get (apiRoot ++ "/documents/" ++ docId) documentResponseDecoder
         |> RemoteData.sendRequest
         |> Cmd.map DocumentFetched
 

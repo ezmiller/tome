@@ -1,3 +1,4 @@
+require('dotenv').config();
 var path              = require( 'path' );
 var webpack           = require( 'webpack' );
 var merge             = require( 'webpack-merge' );
@@ -9,6 +10,7 @@ var entryPath         = path.join( __dirname, 'src/static/index.js' );
 var outputPath        = path.join( __dirname, 'dist' );
 
 console.log( 'WEBPACK GO!');
+console.log( 'API_ROOT: ', process.env.API_ROOT);
 
 // determine build env
 var TARGET_ENV = process.env.npm_lifecycle_event === 'build' ? 'production' : 'development';
@@ -38,6 +40,7 @@ var commonConfig = {
   },
 
   plugins: [
+    new webpack.EnvironmentPlugin(['API_ROOT']),
     new HtmlWebpackPlugin({
       template: 'src/static/index.html',
       inject:   'body',

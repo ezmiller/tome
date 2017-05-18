@@ -5,4 +5,6 @@ require( '../../node_modules/bootstrap-sass/assets/javascripts/bootstrap.js' ); 
 
 // inject bundled Elm app into div#main
 var Elm = require( '../elm/Main' );
-Elm.Main.embed( document.getElementById( 'main' ) );
+Elm.Main.embed( document.getElementById( 'main' ), {
+  apiRoot: process.env.API_ROOT || 'http://localhost:6789'
+} );
