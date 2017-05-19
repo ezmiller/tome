@@ -166,7 +166,15 @@ renderCurrentRoute model =
 
 pageHeader : Html msg
 pageHeader =
-    header [] [ h1 [ class "site-title" ] [ text "HumansCode / Open Notebook" ] ]
+    header []
+        [ h1 [ class "site-title" ]
+            [ a
+                [ class "site-title__link"
+                , href "http://humanscode.com"
+                ]
+                [ text "HumansCode / Open Notebook" ]
+            ]
+        ]
 
 
 
