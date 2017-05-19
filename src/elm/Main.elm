@@ -199,12 +199,15 @@ home model =
             div [] [ text "Oops! Something went wrong." ]
 
         Success notes ->
-            ul [ class "post-list" ]
-                (List.sortWith
-                    descendingUpdatedDates
-                    notes
-                    |> List.map renderNoteLink
-                )
+            div [ class "posts twelve columns" ]
+                [ h2 [ class "posts-year" ] [ text "Notes" ]
+                , ul [ class "post-list" ]
+                    (List.sortWith
+                        descendingUpdatedDates
+                        notes
+                        |> List.map renderNoteLink
+                    )
+                ]
 
 
 descendingUpdatedDates : { a | updated : Date } -> { b | updated : Date } -> Order
