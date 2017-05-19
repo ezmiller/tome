@@ -19,6 +19,7 @@ import Html
         , input
         , ul
         , li
+        , p
         , span
         , textarea
         , time
@@ -142,8 +143,11 @@ menuItems =
 view : Model -> Html Msg
 view model =
     div [ class "container" ]
-        [ pageHeader
-        , renderCurrentRoute model
+        [ div
+            [ class "page notebook-home" ]
+            [ pageHeader
+            , renderCurrentRoute model
+            ]
         ]
 
 
@@ -164,6 +168,11 @@ renderCurrentRoute model =
 -- Header
 
 
+headerIntroText : String
+headerIntroText =
+    "This is an open notebook containing rough notes on a range of topics that are of interest to me and which will form the basis for future writing. My hope is that they may be of use to others as well."
+
+
 pageHeader : Html msg
 pageHeader =
     header []
@@ -174,6 +183,7 @@ pageHeader =
                 ]
                 [ text "HumansCode / Open Notebook" ]
             ]
+        , p [] [ text headerIntroText ]
         ]
 
 
