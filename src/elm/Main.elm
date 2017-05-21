@@ -24,7 +24,7 @@ import Html
         , textarea
         , time
         )
-import Html.Attributes exposing (class, href, placeholder, value)
+import Html.Attributes exposing (attribute, class, href, placeholder, value)
 import HtmlParser
 import HtmlParser.Util
 import Http
@@ -151,7 +151,10 @@ view model =
     in
         div [ class "container" ]
             [ div
-                [ class ("page ten columns " ++ pageClass) ]
+                [ class ("page ten columns " ++ pageClass)
+                , attribute "itemscope" ""
+                , attribute "itemtype" "http://schema.org/Article"
+                ]
                 [ pageHeader
                 , renderCurrentRoute model
                 ]
@@ -306,7 +309,10 @@ docView document docId =
 
         Success document ->
             div []
-                [ article [ class "document-body" ]
+                [ article
+                    [ class "document-body"
+                    , attribute "itemtype" "http://schema.org/articleBody"
+                    ]
                     (HtmlParser.parse document.html
                         |> HtmlParser.Util.toVirtualDom
                     )
