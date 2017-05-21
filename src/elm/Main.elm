@@ -142,13 +142,20 @@ menuItems =
 
 view : Model -> Html Msg
 view model =
-    div [ class "container" ]
-        [ div
-            [ class "page notebook-home" ]
-            [ pageHeader
-            , renderCurrentRoute model
+    let
+        pageClass =
+            if (model.route == Home) then
+                "notebook-home"
+            else
+                "notebook-document"
+    in
+        div [ class "container" ]
+            [ div
+                [ class ("page ten columns " ++ pageClass) ]
+                [ pageHeader
+                , renderCurrentRoute model
+                ]
             ]
-        ]
 
 
 renderCurrentRoute : Model -> Html Msg
@@ -299,7 +306,7 @@ docView document docId =
 
         Success document ->
             div []
-                [ div [ class "document-body" ]
+                [ article [ class "document-body" ]
                     (HtmlParser.parse document.html
                         |> HtmlParser.Util.toVirtualDom
                     )
