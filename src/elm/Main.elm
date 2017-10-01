@@ -1,5 +1,6 @@
 module Main exposing (..)
 
+import Array exposing (Array)
 import Css exposing (pct, px)
 import Date exposing (Date, fromString)
 import Html
@@ -326,6 +327,7 @@ docView document docId =
 type alias Document =
     { id : String
     , title : String
+    , tags : Array String
     , html : String
     , created : Date
     , updated : Date
@@ -346,6 +348,7 @@ documentDecoder =
     decode Document
         |> required "id" Json.Decode.string
         |> required "title" Json.Decode.string
+        |> required "tags" (Json.Decode.array Json.Decode.string)
         |> required "html" Json.Decode.string
         |> required "created-at" dateDecoder
         |> required "updated-at" dateDecoder
