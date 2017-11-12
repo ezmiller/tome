@@ -67,7 +67,6 @@ styles =
 type alias Model =
     { apiRoot : String
     , route : Route
-    , tagFilter : Maybe String
     , document : WebData Document
     , notes : WebData (List Document)
     }
@@ -102,11 +101,8 @@ init flags location =
         initialRoute =
             parseLocation location
 
-        initialFilter =
-            Nothing
-
         model =
-            Model flags.apiRoot initialRoute initialFilter initialDocument initialNotes
+            Model flags.apiRoot initialRoute initialDocument initialNotes
 
         cmd =
             getRouteCmd model initialRoute
