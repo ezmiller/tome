@@ -5,7 +5,7 @@ import UrlParser exposing (..)
 
 
 type Route
-    = Home
+    = Home (Maybe String)
     | DocumentViewRoute String
     | NotFoundRoute
 
@@ -13,7 +13,7 @@ type Route
 matchers : Parser (Route -> a) a
 matchers =
     oneOf
-        [ map Home (s "notebook")
+        [ map Home (s "notebook" <?> stringParam "tags")
         , map DocumentViewRoute (s "notebook" </> s "doc" </> string)
         ]
 
