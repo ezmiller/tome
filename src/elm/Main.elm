@@ -1,13 +1,30 @@
 module Main exposing (..)
 
-import Array exposing (Array)
-import Css exposing (pct, px)
+import Css
+    exposing
+        ( backgroundColor
+        , color
+        , cursor
+        , em
+        , hex
+        , fontVariant
+        , fontWeight
+        , fontSize
+        , lighter
+        , margin2
+        , marginRight
+        , padding2
+        , pointer
+        , px
+        , smallCaps
+        )
 import Date exposing (Date, fromString)
 import Html
     exposing
         ( Html
         , Attribute
         , a
+        , br
         , article
         , button
         , text
@@ -35,6 +52,11 @@ import Navbar exposing (navbar, MenuItem, navItem)
 import Navigation exposing (Location)
 import RemoteData exposing (RemoteData(..), WebData)
 import Routing exposing (Route(..), parseLocation)
+import String.Extra exposing (toSentenceCase)
+
+
+-- For using styles in-line:
+-- https://github.com/rtfeldman/elm-css#approach-1-inline-styles
 
 
 styles : List Css.Mixin -> Attribute msg
@@ -45,6 +67,7 @@ styles =
 type alias Model =
     { apiRoot : String
     , route : Route
+    , tagFilter : Maybe String
     , document : WebData Document
     , notes : WebData (List Document)
     }
@@ -79,10 +102,16 @@ init flags location =
         initialRoute =
             parseLocation location
 
+        initialFilter =
+            Nothing
+
+        model =
+            Model flags.apiRoot initialRoute initialFilter initialDocument initialNotes
+
         cmd =
-            getRouteCmd flags.apiRoot initialRoute
+            getRouteCmd model initialRoute
     in
-        ( Model flags.apiRoot initialRoute initialDocument initialNotes
+        ( model
         , Debug.log "initial cmd: " cmd
         )
 
@@ -118,19 +147,19 @@ changeLocation location model =
             Debug.log "newRoute: " parseLocation location
 
         cmd =
-            getRouteCmd model.apiRoot newRoute
+            getRouteCmd model newRoute
     in
         ( { model | route = newRoute }, cmd )
 
 
-getRouteCmd : String -> Route -> Cmd Msg
-getRouteCmd apiRoot route =
+getRouteCmd : Model -> Route -> Cmd Msg
+getRouteCmd model route =
     case route of
-        Home ->
-            fetchNotes apiRoot
+        Home tags ->
+            fetchNotes model.apiRoot tags
 
         DocumentViewRoute id ->
-            fetchDoc apiRoot id
+            fetchDoc model.apiRoot id
 
         _ ->
             Cmd.none
@@ -145,7 +174,7 @@ view : Model -> Html Msg
 view model =
     let
         pageClass =
-            if (model.route == Home) then
+            if (model.route == (Home Nothing)) then
                 "notebook-home"
             else
                 "notebook-document"
@@ -165,8 +194,8 @@ view model =
 renderCurrentRoute : Model -> Html Msg
 renderCurrentRoute model =
     case model.route of
-        Home ->
-            home model
+        Home tags ->
+            home model tags
 
         DocumentViewRoute id ->
             docView model.document id
@@ -207,8 +236,8 @@ initialNotes =
     Loading
 
 
-home : Model -> Html msg
-home model =
+home : Model -> Maybe String -> Html msg
+home model tags =
     case model.notes of
         NotAsked ->
             text "Not Asked!"
@@ -221,7 +250,7 @@ home model =
 
         Success notes ->
             div [ class "posts twelve columns" ]
-                [ h2 [ class "posts-year" ] [ text "Notes" ]
+                [ (renderNotesHeader tags)
                 , ul [ class "post-list" ]
                     (List.sortWith
                         descendingUpdatedDates
@@ -241,16 +270,59 @@ descendingUpdatedDates a b =
             LT
 
 
+renderNotesHeader : Maybe String -> Html msg
+renderNotesHeader tags =
+    let
+        headerText =
+            case tags of
+                Nothing ->
+                    "Notes"
+
+                Just tags ->
+                    ("Notes (for tag: " ++ tags ++ ")")
+    in
+        h2 [ class "posts-year" ] [ text headerText ]
+
+
 renderNoteLink : Document -> Html msg
 renderNoteLink note =
     li []
         [ article []
-            [ h2 [] [ a [ href ("/notebook/doc/" ++ note.id) ] [ text note.title ] ]
-            , span [ class "post-meta" ]
-                [ time [] [ text (formatDate note.created) ]
+            [ span
+                [ class "post-meta"
+                , styles [ fontSize (px 14) ]
                 ]
+                [ time [] [ text (formatDate note.created) ] ]
+            , h2
+                [ styles [ margin2 (px 0) (px 0) ] ]
+                [ a [ href ("/notebook/doc/" ++ note.id) ] [ text note.title ] ]
+            , (renderTags note.tags)
             ]
         ]
+
+
+renderTags : List String -> Html msg
+renderTags tags =
+    span
+        [ class "tag-list" ]
+        [ span [ class "tag-list__tags" ] (List.map renderTag tags) ]
+
+
+renderTag : String -> Html msg
+renderTag tag =
+    a
+        [ class "tag-list__tag"
+        , href ("/notebook?tags=" ++ tag)
+        , styles
+            [ marginRight (px 4)
+            , padding2 (px 4) (px 6)
+            , backgroundColor (hex "#B9B1A8")
+            , fontSize (px 14)
+            , cursor pointer
+            , color (hex "#FFFFFF")
+            ]
+        ]
+        [ text (toSentenceCase tag) ]
 
 
 formatDate : Date -> String
@@ -266,13 +338,22 @@ formatDate date =
         ++ (toString (Date.minute date))
 
 
-fetchNotes : String -> Cmd Msg
-fetchNotes apiRoot =
-    Http.get
-        (apiRoot ++ "/latest?type=note")
-        documentListResponseDecoder
-        |> RemoteData.sendRequest
-        |> Cmd.map NotesFetched
+fetchNotes : String -> Maybe String -> Cmd Msg
+fetchNotes apiRoot tagFilter =
+    let
+        url =
+            case tagFilter of
+                Nothing ->
+                    (apiRoot ++ "/latest?type=note")
+
+                Just tag ->
+                    (apiRoot ++ "/latest?type=note&tags=" ++ tag)
+    in
+        Http.get
+            url
+            documentListResponseDecoder
+            |> RemoteData.sendRequest
+            |> Cmd.map NotesFetched
 
 
 valueDecoder : Json.Decode.Decoder String
@@ -327,7 +408,7 @@ docView document docId =
 type alias Document =
     { id : String
     , title : String
-    , tags : Array String
+    , tags : List String
     , html : String
     , created : Date
     , updated : Date
@@ -348,7 +429,7 @@ documentDecoder =
     decode Document
         |> required "id" Json.Decode.string
         |> required "title" Json.Decode.string
-        |> required "tags" (Json.Decode.array Json.Decode.string)
+        |> required "tags" (Json.Decode.list Json.Decode.string)
         |> required "html" Json.Decode.string
         |> required "created-at" dateDecoder
         |> required "updated-at" dateDecoder
